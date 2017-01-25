@@ -9,12 +9,22 @@ import System.Exit               (ExitCode(..), exitFailure, exitSuccess)
 import System.Process            (system)
 import Control.Applicative       ((<$>), (<*>))
 import Data.Monoid               (mempty, (<>))
-import Data.Maybe                (fromMaybe)
-import Github.Data               (Repo(..))
-import Github.Repos              (userRepos, RepoPublicity(..))
+import Data.Maybe                (fromMaybe,fromJust)
+import GitHub.Data               (Repo(..))
+import GitHub.Data.Definitions   (Owner(..))
+import GitHub.Endpoints.Repos    (userRepos)
+import GitHub.Data.Repos         (RepoPublicity(..))
+import GitHub.Data.Name          (untagName,mkName)
+import GitHub.Data.URL           (getUrl)
+import Data.Text                 (unpack,pack)
+import Data.Vector             (toList)
+import Data.Proxy              (Proxy(..))
 
 import qualified Options.Applicative.Builder.Internal as X
 import qualified Options.Applicative                  as O
+
+
+toString_ = unpack . untagName
 
 data Options = Options { directory :: String
                        , user      :: String
@@ -38,7 +48,7 @@ start :: Options -> IO ()
 start opts = do
   putStrLn $ "Looking up repositories for " ++ (user opts) ++ " ..."
 
-  d <- userRepos (user opts) All
+  d <- fmap (fmap toList)  $ userRepos (mkName (Proxy :: Proxy Owner) $ pack $ user opts) RepoPublicityAll
 
   case d of
     Left  err   -> putStrLn $ show err
@@ -50,11 +60,11 @@ cloneRepos rawRepos opts = do
   putStrLn $ "Found " ++ (show $ length rawRepos) ++ " repositories for " ++ (user opts) ++ "."
 
   -- Filter the ones that already exist
-  repos <- filterM (\r -> (liftM not) $ doesDirectoryExist $ ((directory opts) ++ "/" ++ (repoName r))) rawRepos
+  repos <- filterM (\r -> (liftM not) $ doesDirectoryExist $ ((directory opts) ++ "/" ++ ( toString_  $  repoName r))) rawRepos
 
   putStrLn $ (show $ length repos) ++ " that you don't already have."
 
-  returnCodes <- mapM (\r -> system $ "cd " ++ (directory opts) ++ " && git clone " ++ (repoSshUrl r)) repos
+  returnCodes <- mapM (\r -> system $ "cd " ++ (directory opts) ++ " && git clone " ++ ( unpack $ getUrl $ fromJust $ repoSshUrl r)) repos
   let rs = all (\e -> e == ExitSuccess) returnCodes
   
   case rs
