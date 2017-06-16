@@ -1,0 +1,7 @@
+resolver: lts-8.18
+packages:
+    - .
+extra-deps:
+- directory-1.2.7.1
+flags: {}
+extra-package-dbs: []
