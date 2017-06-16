@@ -10,12 +10,12 @@ so can be installed with
 cabal install clone-all
 ````
 
-Alternatively, you can clone this repo and install with cabal
+Alternatively, you can clone this repo and install with stack
 
 ````
 git clone https://github.com/silky/clone-all.git
 cd clone-all
-cabal install
+stack install
 ````
 
 Example usage:
